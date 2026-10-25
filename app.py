@@ -1,37 +1,68 @@
-google.api_core.exceptions.ResourceExhausted: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
-Traceback:
-File "/mount/src/desencadenado/app.py", line 257, in <module>
-    respuesta = modelo.generate_content(pregunta)
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/generativeai/generative_models.py", line 331, in generate_content
-    response = self._client.generate_content(
-        request,
-        **request_options,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/ai/generativelanguage_v1beta/services/generative_service/client.py", line 835, in generate_content
-    response = rpc(
-        request,
-    ...<2 lines>...
-        metadata=metadata,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/gapic_v1/method.py", line 131, in __call__
-    return wrapped_func(*args, **kwargs)
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 294, in retry_wrapped_func
-    return retry_target(
-        target,
-    ...<3 lines>...
-        on_error=on_error,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 156, in retry_target
-    next_sleep = _retry_error_helper(
-        exc,
-    ...<6 lines>...
-        timeout,
-    )
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/retry/retry_unary.py", line 147, in retry_target
-    result = target()
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/timeout.py", line 130, in func_with_timeout
-    return func(*args, **kwargs)
-File "/home/adminuser/venv/lib/python3.14/site-packages/google/api_core/grpc_helpers.py", line 77, in error_remapped_callable
-    raise exceptions.from_grpc_error(exc) from exc
+import streamlit as st
+import google.generativeai as genai
+
+# 1. Configuración de la página y Menú lateral (Tu ficha actual)
+st.set_page_config(page_title="Entrenador Calistenia", page_icon="💪")
+st.sidebar.title("Mi Ficha Actual")
+
+semana = st.sidebar.number_input("Semana del Ciclo", min_value=1, max_value=11, value=1)
+nivel_flexiones = st.sidebar.selectbox("Nivel Flexiones", [1, 2, 3, 4, 5])
+nivel_sentadillas = st.sidebar.selectbox("Nivel Sentadillas", [1, 2, 3, 4, 5])
+nivel_dominadas = st.sidebar.selectbox("Nivel Dominadas", [1, 2, 3, 4, 5])
+nivel_verticales = st.sidebar.selectbox("Nivel Verticales", [1, 2, 3, 4, 5])
+nivel_core = st.sidebar.selectbox("Nivel Core", [1, 2, 3, 4, 5])
+
+# 2. Configurar la IA de Gemini con la clave de seguridad
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
+# 3. Instrucciones base (Tu Framework + Tus Niveles en tiempo real)
+instrucciones = f"""
+Actúa como mi entrenador personal experto en calistenia. Responde de forma clara y al grano.
+MANUAL DEL ENTRENADOR:
+[PEGA AQUÍ TODO TU LADRILLO/FRAMEWORK DE LAS 10 SEMANAS Y EJERCICIOS]
+
+=========================================
+DATOS ACTUALES DEL USUARIO:
+- Semana Actual del ciclo: Semana {semana}
+- Nivel Flexiones: {nivel_flexiones}
+- Nivel Sentadillas: {nivel_sentadillas}
+- Nivel Dominadas: {nivel_dominadas}
+- Nivel Flexiones Verticales: {nivel_verticales}
+- Nivel Core: {nivel_core}
+"""
+
+# 4. Configuración del modelo (versión gratuita activa)
+modelo = genai.GenerativeModel(
+    model_name="gemini-flash-latest",
+    system_instruction=instrucciones
+)
+
+# 5. Interfaz del Chat
+st.title("💪 Entrenador IA - Método Desencadenado")
+
+# Memoria del chat
+if "mensajes" not in st.session_state:
+    st.session_state.mensajes = []
+
+# Mostrar mensajes anteriores en pantalla
+for msg in st.session_state.mensajes:
+    with st.chat_message(msg["rol"]):
+        st.markdown(msg["texto"])
+
+# Caja para escribir nuevas preguntas
+pregunta = st.chat_input("Ej: ¿Qué me toca entrenar hoy?")
+
+if pregunta:
+    # Mostrar y guardar lo que pregunta el usuario
+    st.session_state.mensajes.append({"rol": "user", "texto": pregunta})
+    with st.chat_message("user"):
+        st.markdown(pregunta)
+
+    # Generar y mostrar respuesta de la IA (con detector de errores visible)
+    with st.chat_message("assistant"):
+        try:
+            respuesta = modelo.generate_content(pregunta)
+            st.markdown(respuesta.text)
+            st.session_state.mensajes.append({"rol": "assistant", "texto": respuesta.text})
+        except Exception as e:
+            st.error(f"Detalle exacto de Google: {e}")
