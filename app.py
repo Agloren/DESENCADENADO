@@ -33,7 +33,7 @@ DATOS ACTUALES DEL USUARIO:
 
 # 4. Configuración del modelo (versión gratuita activa)
 modelo = genai.GenerativeModel(
-    model_name="gemini-flash-latest",
+    model_name="gemini-flash-lite-latest",
     system_instruction=instrucciones
 )
 
