@@ -228,7 +228,7 @@ DATOS ACTUALES DEL USUARIO:
 """
 
 modelo = genai.GenerativeModel(
-    model_name="gemini-3.7-flash",
+    model_name="gemini-flash",
     system_instruction=instrucciones
 )
 
